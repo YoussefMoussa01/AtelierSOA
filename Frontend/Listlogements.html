@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD Logements</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+        }
+        input, button {
+            margin: 5px 0;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>Gestion des Logements</h1>
+
+<form id="logementForm">
+    <input type="hidden" id="reference">
+    <input type="text" id="adresse" placeholder="Adresse" required>
+    <input type="text" id="delegation" placeholder="Délégation" required>
+    <input type="text" id="gouvernorat" placeholder="Gouvernorat" required>
+    <input type="text" id="type" placeholder="Type" required>
+    <input type="text" id="description" placeholder="Description" required>
+    <input type="number" id="prix" placeholder="Prix" required>
+    <button type="button" id="addButton" onclick="addLogement()">Ajouter</button>
+    <button type="button" id="editButton" style="display:none;" onclick="updateLogement()">Modifier</button>
+</form>
+
+<table>
+    <thead>
+    <tr>
+        <th>Référence</th>
+        <th>Adresse</th>
+        <th>Délégation</th>
+        <th>Gouvernorat</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Prix</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody id="logementTable"></tbody>
+</table>
+
+<script>
+    const apiBase = "http://localhost:8081/LogementRendezVous_Etudiant_war_exploded/api/logement";
+
+    async function fetchLogements() {
+        const response = await fetch(`${apiBase}/getAll`);
+        const logements = await response.json();
+        const tableBody = document.getElementById("logementTable");
+        tableBody.innerHTML = "";
+        logements.forEach(logement => {
+            const row = `<tr>
+                    <td>${logement.reference}</td>
+                    <td>${logement.adresse}</td>
+                    <td>${logement.delegation}</td>
+                    <td>${logement.gouvernorat}</td>
+                    <td>${logement.type}</td>
+                    <td>${logement.description}</td>
+                    <td>${logement.prix}</td>
+                    <td>
+                        <button onclick="editLogement(${logement.reference})">Modifier</button>
+                        <button onclick="deleteLogement(${logement.reference})">Supprimer</button>
+                    </td>
+                </tr>`;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    async function addLogement() {
+        const logement = {
+            adresse: document.getElementById("adresse").value,
+            delegation: document.getElementById("delegation").value,
+            gouvernorat: document.getElementById("gouvernorat").value,
+            type: document.getElementById("type").value,
+            description: document.getElementById("description").value,
+            prix: parseFloat(document.getElementById("prix").value)
+        };
+
+        await fetch(`${apiBase}/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(logement)
+        });
+
+        document.getElementById("logementForm").reset();
+        fetchLogements();  // Rafraîchit la liste après l'ajout
+    }
+
+    async function editLogement(reference) {
+        const response = await fetch(`${apiBase}/${reference}`);
+        const logement = await response.json();
+        document.getElementById("reference").value = logement.reference;
+        document.getElementById("adresse").value = logement.adresse;
+        document.getElementById("delegation").value = logement.delegation;
+        document.getElementById("gouvernorat").value = logement.gouvernorat;
+        document.getElementById("type").value = logement.type;
+        document.getElementById("description").value = logement.description;
+        document.getElementById("prix").value = logement.prix;
+
+        // Changer les boutons pour modification
+        document.getElementById("addButton").style.display = "none";
+        document.getElementById("editButton").style.display = "inline";
+    }
+
+    async function updateLogement() {
+        const reference = document.getElementById("reference").value;
+        const logement = {
+            reference: reference,
+            adresse: document.getElementById("adresse").value,
+            delegation: document.getElementById("delegation").value,
+            gouvernorat: document.getElementById("gouvernorat").value,
+            type: document.getElementById("type").value,
+            description: document.getElementById("description").value,
+            prix: parseFloat(document.getElementById("prix").value)
+        };
+
+        await fetch(`${apiBase}/update/${reference}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(logement)
+        });
+
+        document.getElementById("logementForm").reset();
+        fetchLogements();  // Rafraîchit la liste après la mise à jour
+
+        // Réinitialiser les boutons
+        document.getElementById("addButton").style.display = "inline";
+        document.getElementById("editButton").style.display = "none";
+    }
+
+    async function deleteLogement(reference) {
+        if (confirm("Voulez-vous vraiment supprimer ce logement ?")) {
+            await fetch(`${apiBase}/delete/${reference}`, { method: "DELETE" });
+            fetchLogements();  // Rafraîchit la liste après la suppression
+        }
+    }
+
+    fetchLogements();
+</script>
+</body>
+</html>

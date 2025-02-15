@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Rendez-Vous</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        form {
+            display: grid;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #555;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .rendezvous-list table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .actions button {
+            margin-right: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .actions button.delete {
+            background-color: #dc3545;
+        }
+
+        .actions button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gestion des Rendez-Vous</h1>
+
+    <!-- Formulaire pour Ajouter ou Mettre à jour un Rendez-vous -->
+    <div class="form-container">
+        <h2 id="form-title">Ajouter un Rendez-vous</h2>
+        <form id="rendezvous-form">
+            <label for="date">Date</label>
+            <input type="date" id="date" required>
+
+            <label for="heure">Heure</label>
+            <input type="time" id="heure" required>
+
+            <label for="logement">Logement</label>
+            <input type="text" id="logement" required>
+
+            <label for="numTel">Numéro de téléphone</label>
+            <input type="tel" id="numTel" required>
+
+            <button type="submit">Ajouter</button>
+        </form>
+    </div>
+
+    <!-- Liste des Rendez-Vous -->
+    <div class="rendezvous-list">
+        <h2>Liste des Rendez-Vous</h2>
+        <table id="rendezvous-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Heure</th>
+                <th>Logement</th>
+                <th>Téléphone</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- Les rendez-vous seront ajoutés ici -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const apiUrl = "http://localhost:8081/api/rendezvous";  // Change this URL if needed
+
+    // DOM Elements
+    const form = document.getElementById('rendezvous-form');
+    const tableBody = document.getElementById('rendezvous-table').getElementsByTagName('tbody')[0];
+
+    // Add Rendez-vous
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const date = document.getElementById('date').value;
+        const heure = document.getElementById('heure').value;
+        const logement = document.getElementById('logement').value;
+        const numTel = document.getElementById('numTel').value;
+
+        const rendezvousData = {
+            date: date,
+            heure: heure,
+            logement: { reference: logement }, // Assuming logement is an object with reference
+            numTel: numTel
+        };
+
+        const response = await fetch(`${apiUrl}/add`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(rendezvousData)
+        });
+
+        if (response.ok) {
+            fetchRendezVous();
+            form.reset();
+        } else {
+            alert('Erreur lors de l\'ajout du rendez-vous');
+        }
+    });
+
+    // Fetch All Rendez-vous
+    async function fetchRendezVous() {
+        const response = await fetch(`${apiUrl}/getAll`);
+        const rendezvousList = await response.json();
+        renderTable(rendezvousList);
+    }
+
+    // Render the Table
+    function renderTable(rendezvousList) {
+        tableBody.innerHTML = '';  // Clear existing rows
+
+        rendezvousList.forEach(rdv => {
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                    <td>${rdv.id}</td>
+                    <td>${rdv.date}</td>
+                    <td>${rdv.heure}</td>
+                    <td>${rdv.logement.reference}</td>
+                    <td>${rdv.numTel}</td>
+                    <td class="actions">
+                        <button class="update" onclick="editRendezVous(${rdv.id})">Modifier</button>
+                        <button class="delete" onclick="deleteRendezVous(${rdv.id})">Supprimer</button>
+                    </td>
+                `;
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Delete Rendez-vous
+    async function deleteRendezVous(id) {
+        const response = await fetch(`${apiUrl}/delete/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            fetchRendezVous();
+        } else {
+            alert('Erreur lors de la suppression');
+        }
+    }
+
+    // Edit Rendez-vous (populate form for update)
+    function editRendezVous(id) {
+        // In a real scenario, you can fetch the rendezvous data to populate the form
+        // For now, let's just populate with dummy data for demo purposes
+        const dummyRdv = {
+            date: '2025-02-15',
+            heure: '10:00',
+            logement: { reference: 'A101' },
+            numTel: '123456789'
+        };
+
+        document.getElementById('date').value = dummyRdv.date;
+        document.getElementById('heure').value = dummyRdv.heure;
+        document.getElementById('logement').value = dummyRdv.logement.reference;
+        document.getElementById('numTel').value = dummyRdv.numTel;
+
+        // Change form title to update
+        document.getElementById('form-title').textContent = 'Modifier un Rendez-vous';
+
+        // Change button to "Update"
+        const submitButton = form.querySelector('button');
+        submitButton.textContent = 'Mettre à jour';
+    }
+
+    // Initial fetch
+    fetchRendezVous();
+</script>
+
+</body>
+</html>

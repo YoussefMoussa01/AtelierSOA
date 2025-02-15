@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class LogementBusiness {
-    private List<Logement> logements ;
+    private static List<Logement> logements ;
 
     public LogementBusiness() {
         logements=new ArrayList<Logement>();
